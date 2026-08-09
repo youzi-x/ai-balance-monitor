@@ -1,0 +1,20 @@
+services:
+  ai-balance-monitor:
+    build: .
+    container_name: ai-balance-monitor
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      DATA_DIR: /data
+    volumes:
+      - ./data:/data
+    networks:
+      - default
+      - ai_gateway_net
+
+networks:
+  ai_gateway_net:
+    external: true
