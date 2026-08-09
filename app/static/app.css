@@ -345,6 +345,7 @@ tbody tr:hover { background: rgba(56, 189, 248, 0.05); }
 
 dialog {
   width: min(760px, calc(100% - 30px));
+  max-height: min(92dvh, 860px);
   border: 1px solid var(--glass-border);
   border-radius: 6px;
   background: rgba(23, 32, 51, 0.86);
@@ -357,9 +358,33 @@ dialog {
 }
 dialog::backdrop { background: #020617b8; }
 dialog form, dialog > div:not(.dialog-header):not(.logs) { padding: 20px; }
+dialog form {
+  max-height: min(92dvh, 860px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 .dialog-header { padding: 17px 20px; border-bottom: 1px solid #2b384f; display: flex; align-items: center; justify-content: space-between; }
 .close-button { font-size: 23px; border: 0; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 20px 20px 0; }
+#siteForm .dialog-header,
+#siteForm .form-hint,
+#siteForm .dialog-actions {
+  flex: 0 0 auto;
+}
+#siteForm .form-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-right: 18px;
+  margin-right: -6px;
+}
+#siteForm .form-grid::-webkit-scrollbar { width: 8px; }
+#siteForm .form-grid::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.36); border-radius: 999px; }
+#siteForm .form-grid::-webkit-scrollbar-thumb { background: rgba(94, 234, 212, 0.42); border-radius: 999px; }
+#siteForm .form-grid::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.58); }
 label { display: grid; gap: 6px; font-size: 13px; color: #cbd5e1; }
 label.wide { grid-column: 1 / -1; }
 input, select, textarea { min-width: 0; color: #f8fafc; border: 1px solid #40506b; background: #0f172a; padding: 8px 10px; border-radius: 4px; outline: none; }
