@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI Balance Monitor</title>
+    <link rel="stylesheet" href="/static/app.css?v=20260809-8">
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="overview-panel">
+        <header class="topbar">
+          <div class="brand-stage">
+            <div>
+              <h1>AI Balance Monitor</h1>
+              <p>NewAPI 与 Sub2API 余额监控</p>
+            </div>
+            <div class="monitor-core" aria-hidden="true">
+              <span class="core-ring core-ring-a"></span>
+              <span class="core-ring core-ring-b"></span>
+              <span class="core-scan"></span>
+              <span class="core-mark core-mark-a"></span>
+              <span class="core-mark core-mark-b"></span>
+            </div>
+          </div>
+          <div class="topbar-actions">
+            <button class="icon-button" id="telegramButton" title="Telegram 设置" aria-label="Telegram 设置">&#9881;</button>
+            <button class="primary-button" id="checkAllButton">立即检查</button>
+            <button class="primary-button" id="addSiteButton">添加站点</button>
+          </div>
+        </header>
+
+        <section class="summary" aria-label="状态概览">
+          <div class="metric"><span>站点</span><strong id="totalSites">0</strong></div>
+          <div class="metric"><span>启用</span><strong id="enabledSites">0</strong></div>
+          <div class="metric"><span>正常</span><strong id="healthySites">0</strong></div>
+          <div class="metric warning"><span>低余额</span><strong id="alertingSites">0</strong></div>
+          <div class="metric danger"><span>异常</span><strong id="errorSites">0</strong></div>
+        </section>
+      </aside>
+
+      <section class="content-section monitor-panel">
+        <div class="section-heading">
+          <div>
+            <h2>监控站点</h2>
+            <p>令牌仅保存在本机 SQLite 数据库，列表中始终脱敏显示。</p>
+          </div>
+          <div class="section-tools">
+            <div class="segmented" aria-label="展示模式">
+              <button type="button" id="listModeButton" data-view-mode="list" title="列表模式" aria-label="列表模式">&#9776;</button>
+              <button type="button" id="cardModeButton" data-view-mode="card" title="卡片模式" aria-label="卡片模式">&#9638;</button>
+              <button type="button" id="compactCardModeButton" data-view-mode="compact-card" title="简洁卡片" aria-label="简洁卡片">&#9642;</button>
+            </div>
+            <label class="compact-label">排序
+              <select id="sortKey">
+                <option value="custom">自定义</option>
+                <option value="name">名称</option>
+                <option value="type">类型</option>
+                <option value="balance">余额</option>
+                <option value="status">状态</option>
+                <option value="checked">最后检查</option>
+                <option value="created">添加时间</option>
+              </select>
+            </label>
+            <button type="button" class="icon-button" id="sortDirectionButton" title="切换排序方向" aria-label="切换排序方向">&#8595;</button>
+            <span id="lastRefresh" class="muted"></span>
+          </div>
+        </div>
+        <div id="emptyState" class="empty-state" hidden>
+          <h3>还没有监控站点</h3>
+          <p>添加 NewAPI 或 Sub2API 站点后，服务会按设定周期自动检查余额。</p>
+          <button class="primary-button" id="emptyAddButton">添加站点</button>
+        </div>
+        <div class="table-wrap" id="siteTableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>站点</th>
+                <th>类型</th>
+                <th>余额</th>
+                <th>状态</th>
+                <th>最后检查</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="siteRows"></tbody>
+          </table>
+        </div>
+        <div class="card-grid" id="siteCards" hidden></div>
+      </section>
+    </main>
+
+    <dialog id="siteDialog">
+      <form id="siteForm" method="dialog">
+        <div class="dialog-header">
+          <h2 id="siteDialogTitle">添加站点</h2>
+          <button type="button" class="icon-button close-button" data-close="siteDialog" aria-label="关闭">&#215;</button>
+        </div>
+        <input type="hidden" id="siteId">
+        <div class="form-grid">
+          <label>名称<input id="name" required maxlength="120" placeholder="例如：生产 NewAPI"></label>
+          <label>类型
+            <select id="siteType">
+              <option value="newapi">NewAPI</option>
+              <option value="sub2api">Sub2API</option>
+            </select>
+          </label>
+          <label class="wide">站点地址<input id="baseUrl" required type="url" placeholder="https://api.example.com"></label>
+          <label class="wide">访问令牌<input id="apiToken" required type="password" placeholder="Bearer Token 或 API Key"></label>
+          <label>认证方式
+            <select id="authMode">
+              <option value="bearer">Bearer Token</option>
+              <option value="api_key">API Key Header</option>
+              <option value="custom">自定义 Header</option>
+            </select>
+          </label>
+          <label>认证 Header<input id="authHeaderName" placeholder="Authorization"></label>
+          <label>认证前缀<input id="authPrefix" placeholder="Bearer"></label>
+          <label>检查周期（秒）<input id="checkInterval" type="number" min="30" max="86400" placeholder="默认 300"></label>
+          <label class="wide">余额接口路径<input id="endpointPath" placeholder="/api/user/self"></label>
+          <label class="wide">余额字段路径<input id="balancePath" placeholder="自动识别；需要时填写 data.balance"></label>
+          <label class="wide">额外 Header JSON<textarea id="extraHeaders" rows="3" placeholder='例如 {"New-Api-User":"123"}'></textarea></label>
+          <label>额度除数<input id="quotaDivisor" type="number" min="0.000001" step="any" placeholder="NewAPI 默认 500000"></label>
+          <label>币种<input id="currency" maxlength="12" value="USD"></label>
+          <label>低余额阈值<input id="threshold" type="number" min="0" step="any" value="0"></label>
+          <label class="switch-row"><input id="enabled" type="checkbox" checked><span>启用定时检查</span></label>
+        </div>
+        <p class="form-hint">编辑时留空令牌即可保留原值。Sub2API 默认使用平台 API Key 请求 /v1/usage；如果你的二开版本接口或字段不同，请填写“余额接口路径”和“余额字段路径”。</p>
+        <div class="dialog-actions">
+          <button type="button" class="secondary-button" data-close="siteDialog">取消</button>
+          <button class="primary-button" type="submit">保存</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="telegramDialog">
+      <form id="telegramForm" method="dialog">
+        <div class="dialog-header">
+          <h2>Telegram 报警</h2>
+          <button type="button" class="icon-button close-button" data-close="telegramDialog" aria-label="关闭">&#215;</button>
+        </div>
+        <div class="form-grid">
+          <label class="wide">Bot Token<input id="telegramBotToken" type="password" placeholder="编辑时留空则保持现有 Token"></label>
+          <label>Chat ID<input id="telegramChatId" placeholder="-1001234567890"></label>
+          <label class="switch-row"><input id="telegramEnabled" type="checkbox"><span>启用 Telegram 告警</span></label>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="secondary-button" id="telegramTestButton">发送测试</button>
+          <button type="button" class="secondary-button" data-close="telegramDialog">取消</button>
+          <button class="primary-button" type="submit">保存</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="logsDialog">
+      <div class="dialog-header">
+        <h2 id="logsTitle">检查记录</h2>
+        <button type="button" class="icon-button close-button" data-close="logsDialog" aria-label="关闭">&#215;</button>
+      </div>
+      <div id="logsContent" class="logs"></div>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/static/app.js?v=20260809-8"></script>
+  </body>
+</html>
